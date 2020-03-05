@@ -1,0 +1,363 @@
+リーダブルコード
+第十五章
+「分/時間カウンタ」を設計・実装する
+
+問題を解決
+パフォーマンスを改善
+機能を追加する
+
+■15.1問題
+// ウェブサーバーの直近1分間と直近1時間の転送バイト数を把握したい。
+
+■15.2クラスのインタフェースを定義する
+変更前インタフェースC++
+class MinuteHourCounter {
+  public:
+    // カウントを追加する
+    void Count(int num_bytes);
+
+    // 直近1分間のカウントを返す
+    int MinuteCount();
+
+  // 直近一時間のカウントを返す
+  int HourCount();
+}
+
+MinuteHourCounter()は良い名前
+MinuteCount()
+HourCount()
+とも整合性が取れている
+
+GetMinuteCount()
+GetHourCount()も考えるかもしれないが
+「get」は多くの人にとって軽量アクセスを意味する
+この実装は軽量ではないのでgetは使わない方がいい
+
+Count()メソッドは変更した方がいい
+全期間のカウントを返す
+とも取れる
+Countには名詞と動詞がある
+名詞：これまでのカウントが欲しい
+動詞：これをカウントして欲しい
+Count()の代わり
+・Incremet() 	// 値が増加する一方と思われてしまう
+・Observer() 	// 問題ないが少し曖昧
+・Record()	// 名刺と動詞の問題がある
+・Add()		// 「この数値を追加する」と「データのリストに追加する」両方の意味に当てはまる
+void Add(int count)にメソッド名を変更する
+
+num_bytes:詳細すぎる
+delta:値がマイナスになる場面で使うことが多い
+count:
+
+コメントを改善する
+class MinuteHourCounter {
+  public:
+    // 新しいデータ点を追加する
+    // それから1分間は、MinuteCount()の返す値が+countだけ増える
+   // それから1時間はHourCount()の返す値が+countだけ増える
+    void Add(int count);
+
+    // 直近60秒の累計カウントを返す
+    int MinuteCount();
+
+  // 直近3600秒間の累計カウントを返す
+  int HourCount();
+}
+
+外部の視点を得る
+コメン、メソッド名について同僚に聞いてみる
+ユーザーフレンドリーかどうか
+第一印象を尋ねる
+
+■15.3試案1：素朴な解決策
+// タイムスタンプのついたlistを保持する
+class MinuteHourCounter {
+  struct Event {
+    Event(int count, time_t time) : count(count), time(time) {}
+    int count;
+    time_t time;
+  };
+list<Event> events;
+
+public:
+  void Add(int count){
+    events.push_back(Event(count, time()));
+  }
+  …
+}
+
+rbegin()範囲の末尾さす逆イテレーターを返す -1とか？
+rend()範囲の先頭の前をさす逆イテレータを取得する
+取り出した値　＞　現在時刻-60だったらカウントアップ
+
+読みやすいバージョン
+class MinuteHourCounter {
+  list<Event> events;
+  
+  int CountSine(time_t cutoff){
+    int count = 0;
+    for (list<Event>::reverse_iterator rit = events.rbegin(); rit != events.rend(); ++rit) {
+      if (rit-> time <= cutoff){
+        break;
+      }
+      count += rit->count;
+    }
+    return count;
+  }
+public:
+  void Add(int count);
+    events.push(Event(count, time()));
+
+int MinuteCount() {
+  return CountSine(time() , -60); 
+}
+int HourCount() {
+  return CountSine(time(), -3600);
+}
+}
+// cutoff : secs_agoなどの(60や3600)の相対値ではなく絶対値にしている
+// rit 逆向きのイテレータをわかりやすく
+　rit != events.rend()
+// for (begin; end; advance);の形式のforループは読みやすい
+　全ての要素を調べることがすぐわかる
+
+パフォーマンスの問題
+1,全てのイベントを保持している
+　メモリを無限に使用する
+　1時間より古いイベントは自動的に削除する
+
+2,遅すぎる
+　CountSine()メソッドの処理時間はO(n)である
+　nは任意の時間帯のデータ点の数
+
+■15.4試案2；ベルトコンベヤー設計
+1,不要なデータを削除する
+2,事前にminute_countとhour_countの値を最新のものにしておく
+　既存のコードでは countが大量にあった場合都度数え直さなければならない
+
+listをベルトコンベヤーのように使う
+一方の端に新しいデータが到着したら合計に加算する
+データが古すぎたらもう一方の端から「落下させて」合計から減算する
+
+実装方法は2つある
+・2つのlistを管理する方法(1分間用ベルコン、60分間ようベルコン)
+　全てのイベントを2つずつ作るので非効率
+|-|
+|——|
+・2つのlistを管理する。二段階ベルトコンベヤー設計
+　|-|
+       |——|
+
+二段階ベルトコンベヤーの実装
+class MinuteHourConnter{
+  list<Event> minute_events;
+  list<Event> hour_events; // 直近1分間のイベントは含まれて「いない」
+  
+  int minute_count;
+  int hour_count; // 直近1時間の「全て」のイベントをカウントしている
+}
+// イベントはminute_eventsからhour_eventsへと移動する
+// その後minute_countとhour_countを更新する
+// そのためのヘルパーメソッドshiftOldEvents()を作成する
+void Add(int count){
+  const time_t now_secs = time();
+  ShiftOldEvents(now_secs);
+
+  minute_num += count;
+  hour_num += count;
+}
+int MinuteCount() {
+  ShiftOldEvents(time());
+  return minute_count;
+}
+int HourCount() {
+  ShiftOldEvents(time());
+  return hour_count;
+}
+// 古いイベントを見つけて削除して,hour_countとminute_countを減らす
+void ShiftOldEvents(time_t now_secs){
+  const int minute_age = now_secs - 60;
+  const int hour_age = now_secs - 3600;
+
+  // 1分以上経過したイベントを’minute_events’から’hour_events’へ移動する
+  // （1時間経過した古いイベントは次のループで削除する）
+  while(! mini¥ute_event.empty() && minute_events.front().time <= minute_ago){
+    hour_events.push_back(minute_events.front());
+    minute_count -= minute_events.front().count; // minuteイベントカウントからマイナス
+    minute_events.pop_front(); // minuteからイベントを取り出し
+  }
+  // 1時間以上経過した古いイベントをhour_eventsから削除する
+  while(! hour_events.empty() && hour_events.front().time <= hour_age){
+    hour_count -= hour_event.front().count;
+    hour_events.pop_front();
+  }
+}
+これで終わり？
+パフォーマンスは問題ない
+欠点
+この設計には柔軟性がない
+追加要件　直近24時間のカウントをしたい。
+メモリの使用量が多い
+
+■15.5試案3:時間バケツの設計
+前の設計には小さなバグがある
+タイムスタンプを保持するのに使用したtime_tは秒数を保持しているので計算の数値が丸められてしまう。
+その結果MinuteCount()は呼び出された時刻によって59秒か60秒のデータを返すことになる
+
+新しい設計
+イベントを小さな時間帯に分けてバケツに入れ、バケツ単位でイベントの合計値を出す。
+直近1分間のイベントは、1秒ごとに60個のバケツに入る
+直近1時間のイベントは、1分ごとに60個のバケツに入る
+
+// 期間(直近1時間など)のカウントを追跡するクラス
+
+// 時間バケツN個のカウントを保持するクラス
+class TrailingBucketCounter {  // MinuteHourCounterを汎用化したもの
+  public:
+    // 例：TrailingBucketCounter(30, 60)は直近30分の時間バケツを追跡する
+    TrailingBucketCounter(int nun_buckets, int secs_per_bucket);
+
+  void Add(int count, time_t now);
+
+  // 最新のnum_bucketsの時間に含まれる合計カウントを返す
+  int TrailingCount(time_t now);
+}
+
+Add()とTrailingCount()の仮引数に現在時刻(time_t now)を渡す利点
+・TrailingBucketCountを「時計なし」のクラスにできる。テストしやすい。バグが少なくなる
+・time()の呼び出しをMinuteHourCounterに限定できる
+　時間に依存したシステムでは、時間の呼び出しが一箇所に集まっていると楽
+
+class MinuteHourCounter {
+  TrailingBucketCounter minute_counts;
+  TrailingBucketCounter hour_counts;
+
+public:
+  MinuteHourCounter():
+    minute_counts(/* num_buckets = */ 60, /* secs_pre_bucket = */ 1),
+    hour_counts(    /* num_buckets = */ 60, /* secs_pre_bucket = */ 60),
+}
+void Add(int count) {
+  time_t now = time();
+  minute_counts.Add(count, now);
+  hour_counts.Add(count, now);
+}
+int MinuteCount(){
+  time_t now = time();
+  return minute_counts.TrailingCount(now);
+}
+int HourCount(){
+  time_t now = time();
+  return hour_counts.TrailingCount(now);
+}
+
+TrailingBucketCounterを実装する
+// ConveyorQueue というデータ構造を作成する
+    潜在的なカウントと合計を扱うデータ構造
+// このConveyorQueueを実装すればTrailingBucketCounterの実装が簡単になる
+// 最大数を持ったキュー。古いデータは端から落ちる
+class ConveyorQueue {
+  ConveyorQueue(int max_items);
+
+  // キューの最後の値を増加する
+  void AddToBack(int count);
+
+  // キューの値を’num_shifted’の分だけシフトする
+  // 新しい項目は0で初期化する
+  // 最古の項目はmax_items以下なら削除する
+  void Shift(int nun_shifted);
+
+  // 現在のキューに含まれる項目の合計値を返す
+  int ToTalSum();
+}
+
+class TrailingBucketCounter {
+  ConveyorQueue buckets;
+  const int secs_per_bucket;
+  time_t last_update_time; // Update()が最後に呼び出された時刻
+
+  // 通過した時間バケツの数を計算してShift()する
+  void Update(time_t now) {
+    int current_bucket = now / secs_per_bucket;
+    int last_update_bucket = last_update_time / secs_per_bucket;
+
+    buckets.Shift(current_bucket - last_update_bucket);
+    last_update_time = now;
+  }
+public:
+  TrailingBucketCounter(int num_buckets, int secs_per_bucket):
+    buckets(num_buckets);
+    secs_per_bucket(secs_per_bucket) {
+  }
+  void Add(int count, time_t now) {
+    Update(now);
+    buckets.AddToBack(count);
+  }
+  ing TrailingCount(time_t now){
+    Update(now);
+    return buckets.TotalSum();
+  }
+}
+
+// ConveyorQueueの実装
+// 最大数を持ったキュー。古いデータは端から「落ちる」。
+class ConveyorQueue {
+  queue<int> q;
+  int max_items;
+  int total_sum; // qに含まれる全ての項目の合計
+
+  public:
+    ConveyorQueue(int max_items):max_items(max_items) , total_sum(0) {
+    }
+    int TotalSum() {
+      return total_sum;
+    }
+
+   void Shift(int num_shifted) {
+     // 項目がシフトされすぎた場合にキューをクリアする
+     if (num_shifted >= max_items) {
+       q = queue<int>(); // clear the queue
+       total_sum = 0;
+       return;
+     }
+    // 必要な分だけ0をプッシュする
+    while(num_shifted > 0){
+      q.push(0);
+      num_shifted—;
+   }
+   // 超過した項目は全て落とす
+   while (q.size() > max_items){
+    total_sum -= q.front();
+    q.pop();
+  }
+}
+void AddToBack(int count){
+  if(q.empty()) Shift(1); // qが少なくとも1つの項目を持つようにする
+  q.back() += count;
+  total_sum += count;
+}
+};
+
+■15.6３つの解決策を比較する
+・素朴な解決策
+・ベルトコンベヤー設計
+・時間バケツ設計(バケツ60個)
+
+時間バケツの利点
+・パフォーマンスが高い
+・設計に柔軟性がある
+・クラスに分割しているので読みやすい
+デ・コード量は他に比べて多くなる
+
+
+■15.7まとめ
+ベルコン方式を複数の下位問題に分割することで問題を解決した。
+・ConveyorQueue
+  最大長のあるキュー「シフト」可能で合計値を保持する（？）
+・TrailingBucketCounter
+　時間経過に伴ってConveyorQueueを移動する。また1つの(最新の)時間帯のカウントを任意の制度で保持する
+・MinuteHourCounter
+　２つのTrailingBucketCounterを保持する
+　1つは1分間のカウントでもう1つは1時間のカウント
+

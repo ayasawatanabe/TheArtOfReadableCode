@@ -1,0 +1,171 @@
+リーダブルコード
+第3部　第十章
+コードの再構成
+・プログラムの主目的と関係ない「無関係の下位問題」を抽出する
+・コードを再構成して、一度に一つのことをやるようにする
+・最初にコードを言葉で説明する。その説明を元にして綺麗な解決策を作る
+
+・コードを削除する(?)
+・コードを書かずに済ませる(?)
+
+■無関係の下位問題を抽出する
+1,関数やコードブロックを見て「このコードの高レベルの目標は何か？」と自問する
+2.コードの各行に対して「高レベルの目標に直接的に効果があるのか？あるいは無関係の下位問題を解決しているか？」と自問する
+3.無関係の下位問題を解決しているコードが相当量あれば、そちらを抽出して別の関数にする
+
+■10.1入門的な例：findClosestLocation()
+高レベルの目標「与えられた地点から最も近い場所を見つける」
+変更後
+// 与えられた経緯緯度に最も近いarryaの要素を返す
+// 地球が完全に球体であることを前提としてる
+var findClosestLocation = function (lat, lng, array) {
+  var closest:
+  var closest_dist = Number.MAX.VALUES;
+  for (var i = 0; i < array.length; i += 1) {
+    var dist = spherical_distance(lat, lng, array[i].latitude, array[i].longitube);
+    if (dist < closest_dist) {
+      closest = array[i];
+      closest_dist = dist;
+    }
+  }
+  return closest;
+}
+// 無関係の下位問題として抽出した部分
+// ２つの地点(経緯緯度の)球面距離を算出する関数
+var spherical_distance = function (lat1, lng1, lat2, lng2) {
+  var lat1_rad = radians(lat1);
+  var lng1_rad = radians(lng1);
+  var lat2_rad = radians(lat2);
+  var lng2_rad = radians(lng2);
+
+  // 球面三角法の第二余弦定義の公式を使う
+  return Math.acos(Math.sin(lat1_rad) * Math.sin(lat2_rad) +
+                                Math.cos(lar1_rad) * Math.cos(lat2_rad) *
+                                Mas.cos(lng2_rad - lng1_rad));
+};
+
+■10.2純粋なユーティリティコード
+プログラムの核となる基本的なタスク
+文字列の操作・ハッシュテーブルの使用・ファイルの読み書き
+「基本的なユーティリティ」は基本ライブラリに実装されている
+ファイルの中身を読み込む関数
+PHP file_get_contents(“filename”);
+Python open(“filename”).read
+C++ではファイルの中身を全て読み込む関数は用意されていないので実装する必要がある
+これこそ「無関係の下位問題」
+
+■10.3その他の汎用コード
+例：JavaScript
+変更前
+// サーバーをAjaxで呼び出してレスポンスを処理する
+ajax_post({
+  url: ‘http://example.com/submit’,
+  data: data,
+  on_success: function (response_data) {
+    var str = “{¥n”;
+    for (var key in responce_data) {
+      str += “ “ + key + “ = “ + response_data[key] + “¥n”;
+    }
+    alert(str + “}”);
+    // 引き続きresponce_dataの処理
+  }
+});
+このコードの大部分はディクショナリを綺麗に印字する処理(pretty print)
+このコードをformat_pretty(obj)のような関数にする
+
+変更後
+ajax_post({
+  url: ‘http://example.com/submit’,
+  data: data,
+  on_success: function (response_data) {
+    alert(format_pretty(response_data));
+    // 引き続きresponce_dataの処理
+  }
+});
+
+var format_pretty = function (obj) {
+    var str = “{¥n”;
+    for (var key in obj) {
+      str += “ “ + key + “ = “ + obj[key] + “¥n”;
+    }
+    return str + “}”;
+};
+
+結果
+呼び出し側のコードが簡潔になる
+format_pretty()を再利用できる
+コードが独立していればformat_pretty()の改善が楽になる
+　機能追加
+　読みやすさの向上
+　エッジケースの処理
+
+format_prettyの引数はobjを想定しているが普通の文字列も処理できるようにする
+ネストしたobjだと表示できないので改善する
+// 文字列・非オブジェクトを処理する
+// (非null)オブジェクトを処理する
+の処理を追加,改善する
+
+■10.4汎用コードをたくさん作る
+ファイルを読み込む関数、フォーマットを整形する関数は典型的な「無関係な下位問題」
+複数のプロジェクトで再利用できる
+汎用的
+プロジェクトから完全に切り離されている
+開発、テストも楽
+
+トップダウンプログラミング
+ボドムアッププログラミング
+
+■プロジェクトに特化した機能
+Python
+// Businessオブジェクトを作ってname, url, data_createを設定する
+CHARS_TO_REMOVE = re.compile(r”[‘¥.]+”);
+CHARS_TO_DASH = re.compile(r”[^a-z0-9]+”);
+
+// 名前を有効なURLに変換する
+def make_url_friendly(text);
+  text = text.lower()
+  text = CHARS_TO_REMOVE.sub(‘’, text)
+  text = CHARS_TO_DASH.sub(‘-’, text)
+  return text.strip(“-”)
+
+business = BUsiness()
+business.name = request.POST[“name”];
+business.url = “/biz/” + make_url_friendly(business.name)
+bussiness.date_created = datetime,datetime.utcnow()
+business.save_to_databse()
+
+■10.6既存のインタフェースを簡潔にする
+「ラップ」関数を作成する
+例JavaScriptでブラウザのクッキーを扱う
+ブラウザが提供するインタフェースはname=value1; name2=value2;.....のような文字列(document.cookie)
+必要なクッキーを探すにはこの巨大な文字列をパースしなければならない
+
+変更後：作成したラップ関数のインタフェース
+get_cookie(“max_results”);
+set_cookie(name, value, days_to_expire);
+delete_cookie(name);
+
+■10.7必要に応じてインタフェースを整える
+「グルー」コード
+その他のコードを支援するために存在する
+関数の事前処理・事後処理
+プラグラムの本質的なロジックとは関係ない
+別の関数に分離する
+例
+// ユーザーの情報を暗号化してURLに含める
+// PythonのオブジェクトをURLセーフな文字列にする
+    def url_safe_encrypt(obj);
+
+■10.8やりすぎない
+小さな関数を作りすぎると逆に読みにくくなってしまう
+新しい関数をコードに追加すると、ごくわずかに読みにくさのコストが発生する
+新しい関数はそのコストを相殺できるようなものでなければならない
+
+■10.9まとめ
+プロジェクトの固有のコードから汎用コードを分離する
+ほとんどのコードは汎用化できる
+一般的な問題を解決する、ライブラリやヘルパー関数を作成する
+残るのはプログラムに固有の核となる処理
+
+メソッド内部の処理は同じ抽象化のレベルになるようにする
+

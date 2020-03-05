@@ -1,0 +1,246 @@
+リーダブルコード
+第四部
+効果的で読みやすいテストの書き方
+特定のデータ構造(分/時間カウンタ)の設計と実装を検討しパフォーマンス・優れた設計・読みやすさが相互に作用する様
+
+第十四章
+テストと読みやすさ
+すっきりと簡単なテストを書くための効果的な手法
+
+■14.1テストを読みやすくて保守しやすいものにする
+他のプログラマがテストの追加や変更ができるように、テストコードを読みやすくする
+
+■14.2このテストのどこがダメなのか
+// 検索結果のスコアをソートしてフィルタする関数のテスト
+// 関数宣言
+// ‘docs’をスコアでソートする(降順)マイナスのスコアは削除する
+void SortAndFilterDocs(vector<ScoredDocument>* docs);
+
+// 変更前テスト
+void Test1() {
+  vector<ScoredDocument> docs;
+  docs.resize(5);
+  docs[0].url = “http://example.com”;
+  docs[0].score = -5.0;
+  docs[1].url = “http://example.com”;
+  docs[1].score = 1;
+  docs[2].url = “http://example.com”;
+  docs[2].score = 4;
+  docs[3].url = “http://example.com”;
+  docs[3].score = -9.9998.7;
+  docs[4].url = “http://example.com”;
+  docs[4].score = 3.0;
+
+  SortAndFilterDocs(&docs);
+
+  assert(docs.size() == 3);
+  assert(docs[0] == 4);
+  assert(docs[1] == 3.0);
+  assert(docs[2] == 1);
+}
+
+■14.3テストを読みやすくする
+・「大切でない詳細はユーザーから隠し、大切な詳細は目立つようにする」
+　(vector<ScoredDocument>の設定が一番目立っている)
+
+・ヘルパー関数を作る
+void MakeScoredDoc(ScoredDocument* sd, double score, string url) {
+  sd->score = score;
+  sd->url = url;
+}
+このヘルパー関数を使うとずっと簡潔になる
+void Test1(){
+  vector<ScoredDocument> docs;
+  docs.resize(5);
+  MakeScoredDoc(&docs[0], -5.0,  “http://example.com”);
+  MakeScoredDoc(&docs[1], 1,  “http://example.com”);
+  MakeScoredDoc(&docs[2], 4,  “http://example.com”);
+  MakeScoredDoc(&docs[3], -9.9998.7,  “http://example.com”);
+  …
+}
+まだ以下の点が不十分
+http://example.com
+docs.resize(5)や&docs[0],&dosc[1]も
+ヘルパー関数を修正してAddScoredDoc()という名前にする
+void AddScoredDoc(vector<ScoredDocument>& docs, duble score) {
+  ScoredDocument sd;
+  sd.score = score;
+  sd.url = “https://example.com”;
+  docs.push_back(sd);
+}
+void Test1(){
+  vector<ScoredDocument> docs;
+  AddScoredDoc(docs, -5.0);
+  AddScoredDoc(docs, 1);
+  AddScoredDoc(docs, 4);
+  AddScoredDoc(docs, -99998.7);
+
+  SortAndFilterDocs(&docs);
+
+  assert(docs.size() == 3);
+  assert(docs[0] == 4);
+  assert(docs[1] == 3.0);
+  assert(docs[2] == 1);
+}
+新しい文章の一覧をテストしようと思ったらコードをら大量にコピペする必要がある
+さらに改善するには？
+このテストが何をしようとしているのかを簡単な言葉で説明する
+
+文章のスコアは[-5, 1, 4, -99998.7, 3]である
+SortAndFilterDocs()を呼び出した後のスコアは[4,3,1]である
+スコアはこの順番でなければならない
+
+テストコードは以下のようになると良い
+CheckScoresBeforeAfter(“-5, 1, 4, -99998.7, 3”, “4,3,1”);
+
+テストの本質を1行にまとめる
+テストの本質は「こういう状況と入力から、こういう振る舞いと出力を期待する」レベルまで要約できる
+コードを簡潔に読みやすく
+テストステートメントを短くすることで、テストケースの追加が簡単になる
+
+独自のミニ言語を実装する
+独自のミニ言語を実装すれば、小さな領域で多くの情報を表現できる
+printf()や正規表現ライブラリなども、文字列で別の意味を表現できる(?)
+
+// カンマ区切りの数値をパースするヘルパー関数
+void CheckScoreBeforeAfter(string input, string expected_output) {
+
+// vector<ScoredDocument>を変換するヘルパー関数
+// 文字列から変換する
+vector<ScoredDocument> ScoredDocumentFromStoring(string score) {
+
+string ScoredDocsToString(vector<ScoredDocument> docs){
+
+=>
+最近のC＋＋では以下のように配列リテラルをそのまま引数として渡せるようになったので上のStringからの変換ヘリパー関数はなくてもOK
+CheckScoresBeforeAfter({-5, 1, 4, -99998.8} , {4,3,1})
+
+引数として配列リテラルを渡せない場合は
+スコアをカンマで区切った文字列として渡してCheckScoreBefireAfterでパースする必要があった。
+
+■14.4エラーメッセージを読みやすくする
+assert(output == expected_output)
+が失敗した場合のエラーメッセージ
+Assertion failed: (output == expected_output),
+  function CheckScoresBeforeAfter, file test.cc, line 37
+標準ではエラー詳細がわかりにくい
+
+変更後
+Boost C++ライブラリ
+BOOST_REQUIRT_EQUAL(output, expected_output);
+
+Python の　unittestモジュール
+assertEquale()
+
+手作りのエラーメッセージ
+BOOST_REQUIRE_EQUAL()のエラーメッセージ
+output == expected_output failed[“1 ,3 ,4” != “4, 3, 1”];
+これをもっと自分好みに出力する
+void CheckScoresBeforeAfter(…) {
+  …
+  if (output != expected_output) {
+    cerr << “CheckBeforeAfter() failed,” << endl;
+    cerr << “Input:                    ¥”” << input << “¥”” << endl;
+    cerr << “Expected Output: ¥”” << expected_output << “¥”” << endl;
+    cerr << “Actual Output:      ¥”” << output << “¥”” endl;
+    abort();
+  }
+}
+—
+出力結果
+CheckScoresBeforeAfter() failed,
+  Input:			“-5, 1, 4, -9998.7, 3”
+  Expected Output:	“4, 3, 1”
+  Actual Output:	“1, 3,  4”
+
+エラーメッセージはできるだけ役に立つようにする
+自分好みのエラーメッセージを印字する
+
+■14.5テストの適切な入力値を選択する
+コードを完全にテストする最も単純な入力値の組み合わせを選択しなければならない
+
+コードを完全にテストする
+簡単に読める
+入力値を単純化する
+テストには最も綺麗で単純な値を選ぶ
+
+バッファオーバーランなどの意図しないバグを検知するためには
+大量の引数が必要、プログラムで入力値を作る
+
+一つの機能に複数のテスト
+小さなテストを複数作る方が簡単で、効果的で読みやすい
+
+SortAndFilterDocs()には4つのテストがある
+CheckScoresBeforeAfter(“2, 1,3”  , “3, 2, 1”) 	// ソート
+CheckScoresBeforeAfter(“0, -0.1  , -10”, “0”) 	// マイナスは削除
+CheckScoresBeforeAfter(“1, -2, 1 , -2”, “1”) 	// 重複は削除
+CheckScoresBeforeAfter(“”           , “”) 		// 空の入力は許可
+
+■14.6テストの機能に名前をつける
+テスト関数に名前をつける
+・テストするクラス
+・テストする関数
+・テストする状況やバグ
+TEST_<関数名>()
+
+状況に応じてテストを分割する場合は
+TEST_<関数名>_<状況>()
+
+他にはassertを使用する関数の場合は
+Checkをつけるなど
+
+■14.7このテストのどこがダメだったのか
+・テストに関係ないことがたくさん書かれていないか
+・テストが何をしているか1行で表せているか
+・テストステートメントが長くなりすぎていないか
+
+・テストが簡単に追加できるか
+・長くて重複の多いコードになっていないか
+
+・失敗メッセージはわかりやすいか
+・デバッグに使える情報が足りているか
+
+・一度に全てのことをテストしようとしていないか
+・テストは適切に分割されているか
+
+・テストの入力値が単純化されているか
+
+・テストの入力値に不足がないか
+　0など
+・極端な入力値をテストしているか
+　空のベクタ、巨大なベクタ、スコアの重複など
+
+・Test1()などと意味のないテスト名になっていないか
+・テスト関数の名前はテストする関数や状況を表したものになっているか
+
+■14.8テストに優しい開発
+テストしやすいインタフェース
+　状態やセットアップがない
+　検査するデータが隠されていない
+テストに優しい設計はわかりやすいコードになる
+
+プログラムをクラスやメソッドに分割する
+疎結合にした方がテストしやすい
+
+テスト容易性の低いコードの特性とそこから生じる設計の問題
+・グローバル変数を使っている
+・多くの外部コンポーネントに依存している
+・コードがひっ決定的な動作をする
+
+テスト容易性の高いコードの特性とそこから生じる設計の利点
+・クラスが小さいあるいは内部状態を持たない
+・クラスや関数が1つのことをしている
+・クラスは他のクラスにあまり依存していない。高度に疎結合されている
+・関数は単純でインタフェースが明確である
+
+■14.10まとめ
+テストを改善する点
+・テストのトップレベルはできるだけ簡潔にする。入出力のテストはコード1行で記述できると良い
+・テストが失敗したらバグの発見や修正がしやすいようなエラーメッセージを表示する
+・テストに有効な最も単純な入力値を使う
+・テスト関数に説明的な名前をつけて、何をテストしているのかを明らかにする。Test1()ではなくTest_関数名_状況()のような名前にする
+
+新しいテストの追加や修正を簡単に
+
+
+

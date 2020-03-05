@@ -1,0 +1,186 @@
+リーダブルコード
+第7章
+
+KEY:条件やループなどの制御フローはできるだけ自然にする。コードの読み手が立ち止まったり読み返したりしないように書く
+
+7.1条件式の引数の並び順
+どちらが読みやすいか
+
+if( length >= 10)
+または
+If (10 <= length)
+
+while( bytes_received < bytes_expected )
+または
+while ( bytes_expected > bytes_received )
+
+左側
+「調査対象」の式。変化する
+右側
+「比較対象」の式。変化しない
+
+英語の用法ともあっている
+「もし君が1年間で10万ドル以上稼げるならば」
+「もし君が18歳以上ならば」
+
+ヨーダ記法 は今はあまり使われない
+Not if anything to say about it l have
+「今日でジェダイは死に絶える」「さてどうかのう、そう決めつけるのはまだ早い」
+if (obj = NULL ) # If (obj == NULL) を想定したバグ
+If (NULL = obj)  と書く事でコンパイルできないので安全
+最近では if( obj = NULL )と書くとコンパイルエラーになるので意味がなくなった。
+
+7.2if/elseブロックの並び順
+
+If (a == b) {
+ …
+} else {
+ …
+}
+または
+If (a != b){
+
+・条件は否定形よりも肯定系を使う
+　例えば if ( !debug )ではなく( debug)を使う
+・単純な条件を先に書く。if と　else が同じ画面に表示されるので見やすい
+・関心を引く条件や目立つ条件を先に書く
+
+・否定形の条件であっても単純で関心や注意を引く場合もある
+If not file:
+  # エラーをログに記録する
+else:
+ #  …
+
+7.3三項演算子
+条件 ? a : b という条件式
+これは if (条件) { a } else { b }を簡潔に書いたもの
+
+三項演算子の方が読みやすい場合
+time_str += (hour >= 12) ? “pm” : “am”;
+
+使わない方がいい場合
+Return exponent >= 0 ? Mantissa * (1 << exponent) : mantissa / (1 << -exponent);
+三項演算子を使わない場合
+If ( exponent >= 0 ){
+  return mantissa * (1 << exponent);  
+} else {
+  Return mantissa / (1 << -exponent);
+}
+
+鍵となる考え
+行数を短くするよりも、他の人が理解するのにかかる時間を短くする
+
+7.4do/whileループを避ける
+do { 式 } while { 条件 } ループ # 式の部分は最低一回は実行される
+コードブロックを再実行する条件が下にあるので読みずらい
+do/whileループはwhileループで書きなおせる事が多い
+continue文が紛らわしい
+Do-statementはエラーや混乱の原因になる事が多い
+
+do/whleループで書いた場合
+// name に合致するものをnodeのリストから検索する
+// max_length を超えたノードは考えない
+Public boolean ListHasNode(Node node, String name, int max_length) {
+  do {
+    If (node.name().equals(name))
+      return true;
+    node = node.next()
+  } while (node != null && —max_length > 0);
+    return false;
+}
+
+Whileで書き直した場合
+public boolean LisHasNode(Node node, String name, int max_length) {
+  while (node != null && max_length— > 0) {
+    If (node.name().equals(name)) return true;
+    node = node.next();
+  }
+  Return false;
+}
+
+
+7.5関数から早く返す
+ガード節
+public boolean Contains(String str, String substr) {
+  If (str == null || substr == null) return false;
+  If (substr.equals(“”)) return false;
+  …
+}
+
+言語
+C++				デストラクタ
+Java / Python		try…finally
+Python			with
+C#				using
+
+7.6悪名高きgoto
+関数の最下部に置いたexitと一緒に使用する以外はNG
+基本使わない
+
+7.7テストを浅くする
+早めに返してネストを削除する
+変更前
+If (user_result == SUCCESS) {
+  If (permission_result != SUCCESS) {
+    Reply.WiteErrors(“error reading permissions”);
+    Reply.Done();
+    Return;
+  }
+Reply.WriteErrors();
+}
+
+変更後
+If (user_result != SUCCESS){
+    reply.writeError(user_result);
+    reply.Done();
+    Return;
+}
+
+If (permission_result != SUCCESS){
+    reply.writeError(permission_result);
+    reply.Done();
+    Return;
+  
+}
+Reply.WriteError(“”);
+reply.Done;
+精神的なスタック
+ループ内部の内部のネストを削除する
+If (…) return; が関数のガード節
+If (…) continue; がループのガード節
+ただしCountinueはわかりにくくなる事が多いので注意
+Continue変更前
+For (int = 0; I < results.size(); I++) {
+  If (results[i] != NULL ) {
+    non_null_count++;
+
+      If (results[I] -> name != !!) {
+        Cout << “Considering candidate…” << endl;
+     }
+  }
+}
+Continue変更後
+For (int I = 0; I < results.size(); I++) {
+  If (results[I] == NULL )continue;
+  non_null_count++
+
+  If (results[I] -> name == “”) continue;
+  Cout << “Considering candidate…” << end;
+  …
+};
+このループは１つだけなのでcontinueがどの項目を飛ばすのかが分かりやすい
+
+7.8実行の流れを終えるか
+下記のような構成要素を使っているとコードを追うのが難しくなる
+構成要素
+スレッド
+　　どのコードがいつ実行されるのよく分からない
+シグナル/割り込みハンドル
+　　他のコードが実行される可能性がある
+例外
+　　いろんな関数呼び出しが終了しようとする
+関数ポインタと無名関数
+　　コンパイル時に判断できないので、どのコードが実行されるのか分からない
+仮装メソッド
+　　object.virtualMethod()は未知のサブクラスのコードを呼び出す可能性がある
+

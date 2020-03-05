@@ -1,3 +1,121 @@
-//リーダブルコード4章
+リーダブルコード
+第四章
+美しさ
 
-美しく
+余白、配置、順序
+
+・読み手がなれているパターンと一貫性があるレイアウトを使う
+・似ているコードは似ているように見せる
+・関連するコードをまとめてブロックにする
+
+4.2一貫性のある簡潔な改行位置
+
+public class PerformanceTester {
+  // TcpConnectionSimulator(throughput, latency, jitter, packet_loss)
+// [kbps] [ms] [ms] [percent]
+}
+
+Or 
+
+public class PerformanceTester {
+  // TcpConnectionSimulator(throughput, latency, jitter, packet_loss)
+// throughput = [kbps]
+// latency = [ms]
+// jitter = [ms]
+// packet_loss = [percent]
+}
+
+Puclic static final TcpConnectionSimlator wifi = new TcpConnectionSimulator(500, 80, 200,1);
+
+4.3メソッドを使った整列
+CheckFullName(test1, hoge, 1);
+CheckFullName(test2, ppp, 2);
+CheckFullName(test3, popo 1);
+
+ 重複を排除したことでコードが簡潔になる
+テストケースの大事な部分（名前やエラー文字列）が見やすくなった
+テストの追加が簡単になった
+ー＞
+見た目を良くすれば表面上の改善だけでなくコードの構造もかいぜんできる
+
+4.4横の線をまっすぐにする
+commands[] = [
+  {‘timeout’,             NULL,                        cms_spec_timeout  },
+  {‘timestamping’,   &opt.timestamping,  cmd_boolean   },
+  {tries,                    &opt.ntry                   cmd_number_inf  }
+]
+流し読みできる
+
+4.5一貫性と意味のある並び
+Datails = request.POST.get(details);
+Location = request.POST.get(localtion);
+Phone = request.POST.get(phone);
+
+ ランダムに並べるのではなく意味のある順に並べる
+対応するHTMLフォームの<input>フィールドと同じ並び順にする
+最重要なものから重要度順に並べる
+アルファベット順に並べる
+ー＞コード内で並べ順を統一することが大切
+
+4.6宣言をブロックにまとめる
+論理的なグループに分けてあげる
+
+Class FrontendServer {
+  Public;
+    FrontendServer();
+    
+   // ハンドラ
+   Void ViewProfile(HttpRequest request);
+    Void SaveProfile(HttpRequest request);
+    Void Find(HttpRequest request);
+
+  // リクエストとリプライのユーティリティ
+  String ExtractQueryParam(HttpRequest request, string, param)
+  Void ReplyOK(HttpRequest request, string, html);
+ 
+  // データベースのヘルパー
+　void OpenDatabase(string, location, string, user);
+    Void CloseDatabase(string, location);
+};
+
+
+4.7コードを段落に分割する
+Def syggest_new_friends(user, email_password);
+  // ユーザの友達のメールアドレスを取得する
+Frends = user.friends()
+friend_email = set(f.email for f in friends)
+
+  // ユーザのメールアカウントからすべてのメールアドレスをインポートする
+Code
+Code
+
+ // まだ友だちになっていないユーザを探す
+Code
+Code
+non_friend_email = contact_email - frined_emails
+sugggested_friends = User.objects,select(email_in=non_friend_emails)
+// それをページに表示する
+
+段落ごとにようやくコメントを追加する
+ざっと目を通しやすいコードに
+
+4.8一貫性を保つことが大切
+Class Logger {
+  …
+};
+と
+Class Logger
+{
+….
+};
+
+どっちでもいいけど混在すると読みにくい！
+一貫性が大切
+
+4.9まとめ
+一貫性と意味のあるやり方でコードを整形する
+・複数のコードブロックで同じようなことをしていたら、シルエットを同じようにする
+・コードの列を整列すれば概要が把握しやすくなる
+・ある場所でABCのように並んでいたものを他の場所でBCAのように並べてはいけない、意味のある順番を選んで常にその順番を守る
+・空行を使って大きなブロックを論理的な段落に分ける
+

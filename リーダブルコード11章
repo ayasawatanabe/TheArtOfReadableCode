@@ -1,0 +1,146 @@
+リーダブルコード
+第十一章
+一度に複数のことをするコードは理解しにくい。
+「タスク」が個別に完結しているコードを書く
+関数は一度に一つのことを行うべき
+一度に一つのタスクを行う
+1,コードが行なっているタスクを全て列挙する。
+2,タスクをできるだけ異なる関数に分割する。少なくとも異なる領域に分割する
+
+■11.1タスクは小さくできる
+ブログに設置する投票用のウィジェット
+ユーザはアップ(賛成)もしくはダウン(反対)を投票できる
+scoreは全ての投票を合計したものである
+アップは+1ダウンは-1
+
+ユーザーが投票や更新のためにボタンをクリックしたら以下のJavaScriptが呼び出される
+vote_changed(old_vote, new_vote);
+
+変更前
+以下の関数はold_voteとnew_voteの全ての組み合わせを考慮してscoreを更新している
+var vote_changed = function (old_vote, new_vote) {
+  var score = get_score();
+  if (new_vote !=== old_vote) {
+    if (new_vote == “Up”) {
+      score += (old_vote === “Down” ? 2:1)
+    } else if ( new_vote == “Down”) {
+      score -= (old_vote === “Up”? 2:1) ;
+    } else if (new_vote === “”){
+       score += (old_vote === “Up” ? -1:1);
+    }
+  }
+  set_score(score);
+}
+
+new_vote:UP
+old_vote:DOWN
+5 + 2 = 7
+
+new_vote:UP
+old_vote: “”
+5 + 1 = 6
+
+???
+エラーやタイポやバグがあっても一目見ただけではわからないと書いてあるので上のコードにはバグがある？？
+このコードはスコアを更新する処理だが実際には2つのタスクを行なっている
+1,old_voteとnew_voteを数値にパースする
+2.scoreを更新する
+
+2つのタスクを別々に解決すれば、読みやすいコードになる
+変更後
+// 投票を数値にする
+var vote_value = function( vote ){
+  if (vote === “Up”){
+    return 1:
+  }
+  if (vote === “Down”){
+    return -1;
+  }
+  return 0;
+}
+//スコアを更新する
+var vote_changed = function (old_vote, new_vote){
+  var score = get_score();
+  score -= vote_value(old_vote); // 古い値を削除する
+  score += vote_value(new_vote); // 新しい値を追加する
+
+  set_score(score);
+}
+
+// やっぱりこのコードの仕様がわからない
+// なぜ古い値を削除する必要があるのか
+old down
+new up
+5 -= -1 … 4
+4 + 1 = 5
+
+// タスクを分けるという点では分かりやすいのでこのまま進める
+
+「一度に1つのタスク」を適応する
+変更後
+// ユーザの所在地を読みやすい文字列「都市, 国」に整形するJavaScript
+// [Santa Monica, USA] [Paros, France]
+location
+|LocalityName                          | Santa Monica  | 市や町
+|SubAdministrativeAreaName | Los Angeles     |都市や郡
+|AdministrativeAreaName       | California         |州や地域
+|CountryName                          | USA                 |国
+// 都市を選ぶときは上から順に使用可能なものを使う
+
+1. location_infoディクショナリから値を抽出する
+2. 「都市」の優先順位を調べる。何も見つからなかったらデフォルトで「MIddle-of-Nowhere」を入れる
+3. 「国」を取得するなければ「Planet Earth」にする
+4. Placeを更新する
+
+// location_infoディクショナリから値を抽出する
+var town = location_info[“LocalityName”]; // 例Santa Monica
+var city = location_info[“SubAdministrativeAreaName”]; // LosAngeles
+var state = location_info[“AdministrativeAreaName”]; // CA
+var country = location_info[“CountryName”]; // USA
+
+// 先にデフォルト値を設定して見つかったら書き換える
+// second_half 後半部分
+var second_half = “Planet Earth”;
+if(country){
+  second_half = country;
+}
+if (state && country === “USA”) {
+  second_half = state; // アメリカの場合は「国」ではなく州名を表示する
+}
+// first_half 前半部分
+var first_half = “Middle-of-Nowhere”;
+if (state && country !== “USA” ){
+  first_half = state;
+}
+if (city){
+  first_half = city;
+}
+if (town){
+  first_half = town;
+}
+// 最後に結合
+return first_half + “,” + second_half;
+
+変更後：さらに is USAの判定を分割する
+var first_half, second_half;
+if (country == “USA”){
+  first_half = town || city || “Middle-of-Nowhere”;
+  second_half = state || “USA”;
+} else {
+  first_half = town || city || “Middle-of-Nowhere”;
+  second_half = state || “Planet Earth”;
+}
+return first_half + “,” + second_half;
+
+■11.3もっと大きな例
+// ウェブクローリングシステム
+// 様々な統計値を更新する関数
+// ウェブページをダウンロードした後に毎回呼ばれる
+省略
+
+■11.4まとめ
+読みにくいコードがあればそこで行われているタスクを列挙する
+別の関数やクラスに分割できるタスクを見つける
+関数の論理的な段落を作る
+プログラムが行なっていることを正確に説明することができるように理解する
+

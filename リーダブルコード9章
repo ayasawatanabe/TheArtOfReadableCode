@@ -1,0 +1,256 @@
+リーダブルコード
+第九章
+変数と読みやすさ
+
+変数を適当に扱うとプログラムが理解しにくくなる
+・変数が多いと変数を追跡するのが難しくなる
+・変数のスコープが大きいとスコープを把握する時間が長くなる
+・変数が頻繁に変更されると現在の値を把握するのが難しくなる
+
+9.1変数を削除する
+役に立たない一時変数
+now = datetime.datetime.now()
+root_message.last_view_time = now
+
+Nowを使う意味がない
+・複雑な式を分解していない
+・より明確になっていないdatetome.datetime.now()のままでも十分分かりやすい
+・一度しか使用していないので、重複コードの削除になっていない
+Nowがなくても楽に理解できる
+
+root_message.last_view_time = date time.datetime.now();
+
+中間結果を削除する
+配列から値を削除するJavaScriptのコード
+var remove_one = function (array, value_to_remove ){
+  var index_to_remove = null;
+  for (var = i; i < array.length; i += 1) {
+    if ( array[i] === value_to_remove ) {
+      index_to_remove = i;
+      break;
+    }
+  }
+  if (index_to_remove != null ){
+    Array.splice( index_to_remove, 1);
+  }
+};
+変数index_to_removeは中間結果を保持するためだけに使用している
+変数を削除し結果をそのまま使う
+var remove_one = function ( array, value_to_remove ){
+  for (var i = 0; i < array.length; i += 1) {
+    if (array[i] === value_to_remove ) {
+      array.splice(i, 1);
+    }
+  }
+} ;
+
+制御フロー変数を削除する
+boolean done = tales;
+while (/* 条件 */  && !done ) {
+  …
+  if (…) {
+    done = true;
+    continue;
+  }
+}
+// doneはループの色々なところでtrueに設定されている
+「制御フロー変数」
+うまくプログラミングすれば制御フロー変数は削除できる
+while (…) {
+  …
+  if (…) {
+    break; // if分の構造を抜ける
+  }
+}
+breakが使えないようなネストが何重もあるループの場合はループ内部のコードやループ全体を新しい関数にする
+
+9.2変数のスコープを縮める
+「グローバル変数は避ける」は鉄則
+・グローバル変数はどこでどのように使われるか追跡するのが難しい
+・名前空間を汚染する(ローカル変数と衝突する可能性がある)ローカル変数を使っているつもりでグローバル変数を修正したりまたその逆など
+
+「全ての変数のスコープを縮める」
+モジュール、クラス、関数、ブロックスコープを利用する
+アクセスはできるだけ制限して、変数が参照可能なコード範囲を減らす
+結果
+一度に考えなければいけない変数を減らせる
+全ての変数のスコープを1/2にするとスコープに存在する変数の数は平均して1/2になる(らしい)
+
+例：巨大なクラス、メンバ変数は2つのメソッドから使用されている
+class LargeClass {
+  string str_;
+
+  void Method1() {
+    str_ = …;
+    Method2();
+  }
+
+  void Method2() {
+    // str_を使っている
+  }
+
+  // str_を使っていないメソッドが沢山ある
+}
+上記メンバ変数は、クラスの中でミニグローバルになっている
+大きなクラスでは全てのメンバ変数を追跡したり、どのメソッドが変数を変更しているのかを把握したりするのは難しい
+ミニグローバルは減らしたほうがいい
+
+class LargeClass {
+  void Method1() {
+    string str = …;
+    Method2(str);
+  }
+  void Method2(string str) {
+    // strを使っている
+  }
+  // その他のメソッドはstrが見えない
+}
+
+クラスのメンバへのアクセスを制限するもう一つの方法は、メソッドをできるだけstaticにすること。
+staticメソッドを使うとメンバ変数とは関係ないことが明示できる
+
+また別の方法は大きなクラスを小さなクラスに分割すること
+分割後のクラスが独立していること
+
+C++のif分のスコープ
+if分の中でしか変数を使用しない場合
+if ( PaymentInfo* info = database.ReadPaymentInfo()) {
+  cont << “User paid: “ << info ->amount() << end;
+}
+
+JavaScriptでプライベート変数を作る
+submitted = false; //注意：グローバル変数
+var submit_form = function (form_name ){
+  if (submitted) {
+    return; // 二重投稿禁止
+  }
+  …
+  submitted = true;
+}
+他のファイルから別の目的で変数submittedを使用している可能性がある
+↓
+変数submittedをクロージャーで包んであげる
+var submit_form = (function () {
+  var submitted = false; // 以下の関数からしかアクセスされない
+  
+  return function (form_name) {
+    if (submitted) {
+      return; // 二重投稿禁止 
+    }
+  …
+  submitted = true;
+  };
+}());
+最終行にある括弧は外側の無名関数がすぐに実行されて内側の関数を返している
+この技法は内部の関数だけがアクセスできるプライベートスコープを作ることができる
+
+JavaScriptのグローバルスコープ
+JavaScriptでは変数の定義にvarをつけないとその変数はグローバルスコープになる
+グローバルスコープに入ると全てのJavaScriptファイルや<script>のブロックからアクセスできてしまう
+
+同じ変数を定義してしまうと混線する
+JavaScriptのベストプラクティスは変数を定義するとは常にvarキーワードをつける
+そうすればその変数が定義された関数の中で閉じる
+
+C++やJavaのような言語にはブロックスコープがある
+if for tryなどのブロックで定義された変数は、スコープがそのブロックに制限される
+
+if (…) {
+  int x = 1;
+}
+x++; // コンパイルエラー！xは未定義です
+
+PythonやJavaScriptではブロックで定義された変数はその関数全体にこぼれ出る
+# ここまではexample_valueを使っていない
+if request:
+  for value in request.values:
+    if value > 0:
+        example_value = value
+        break
+for lagger in debug.laggers:
+  logger.log(“Example:” , example_value)
+# 。。。？
+以下のように変更する　中間変数example_valueは削除
+def LogExample(value) :
+  for logger in debug.loggers:
+    logger.log(“Example:” , value)
+
+if request:
+  for values in request.values:
+    if value > 0:
+      LogExample(value)  # すぐにvalueを使う
+　　break
+
+定義の位置を下げる
+先頭に全て書かなくても良い
+
+■9.3変数は一度だけ書き込む
+変数が絶えず変更され続けると可読性が下がる
+できるだけ変数は一度だけ書き込むようにする
+
+static const int NUM_THREADS = 10;
+C++のconst
+Javaのfinal
+Python,JavaScripのイミュータブルなString
+
+変数を操作する場所が増えると、現在値の判定が難しくなる
+
+例：input1,input2,input3と順に見ていきvalueが空の変数に値を挿入する
+変更前
+var setFistEmptyInput = function (new_value) {
+  var found = tales;
+  var i = 1;
+  var elem = document.getElementById(‘input’ + i);
+  while (elem !== null) {
+    if (elem.value == ‘’) {
+      found = true;
+      break;
+    }
+    i++;
+    elem = document.getElementById( ‘input’ + i);
+  }
+  if (found) elem.value = new_value;
+  return elem;
+};
+var found, var i ,var elemは何度も書き換えられている
+
+変更後: 中間変数foundをなくす
+var setFirstEmptyInput = function (new_value) {
+  var i = 1;
+  var elem = document.getElementById(‘input’ + i);
+  while (elem != null) {
+    if (elem.value === ‘’) {
+      elem.value = new.value;
+      return elem;
+    }
+    i++;
+    elem = document.getElementById(‘input’ + i);
+  }
+  return null;
+}
+
+変更後：elemを改善するために　whileをforループに書き換える
+var setFirstEmptyInput = function (new_value) {
+  for (var i = 1; true; i++) {
+    var elem = document.getElementById(‘input’ + i);
+    if (elem === null ){
+      return null; // 検索失敗　空の入力フィールドは見つからなかった
+    }
+　if (elem.value == ‘’){
+     elem.value = new_value;
+     return elem;
+   }
+  }
+};
+# 変数elemがループ内で一度だけ書き込まれている
+
+■まとめ
+プログラム変数はすぐに増えるのでいずれ追跡できなくなる
+変数を減らして軽量化する
+・邪魔な変数を削除する
+　結果をすぐに使って中間変数を削除する
+・変数のスコープをできるだけ小さくする
+　見える範囲の行数のコードに収める
+・一度だけ書き込む変数を使う
+　コードが理解しやすくなる
+

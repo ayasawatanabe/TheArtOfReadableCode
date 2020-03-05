@@ -1,0 +1,116 @@
+リーダブルコード
+第8章
+強大な式を分割する
+
+8.1説明変数
+式を分割する
+式を表す変数を使う
+式の意味を説明する
+変更前
+if line.split(‘:’)[0].split() == “trot”;
+変更後
+username = line.split(‘:’)[0].split()
+ If username == “root”;
+
+8.2要約変数
+式を変数に代入しておくと便利
+管理や把握を簡単にする
+Final boolean user_owns_document = (request.user.id == document.owner_id);
+If (user_owns_document) {
+// ユーザはこの文章を編集できる
+}
+If (!user_owns_document){
+// この文章は読み取り専用
+}
+
+8.3ド・モルガンの法則
+
+1. not ( a or b or c ) <-> ( not a ) and ( not b ) and ( not c)
+2. not ( a and b and c ) <-> ( not a ) or ( not b ) or ( not c )
+Not を分配してand/orを反転する
+Not をくくり出す
+
+8.4短縮評価の悪用
+ブール演算子は短縮評価を行うものが多い if ( a || b )の a が ture なら b は評価されない
+
+// このキーのバケツを取得する。もしバケツがnullじゃなかったら中身が入っていないかを確認する
+変更前
+asert((! Bucket = FindBucket(key))) || !bucket -> IsOccupied(); 
+変更後
+bucket = FindBucket(key);
+  If (bucket != NULL) assert(! Bucket -> IsOccupied());
+無理に1行で書かない
+
+よく使われる短縮系　これは問題ない
+If (object && object->method());
+x = a || b || c # abcの中から最初に真と評価できるものを選ぶ
+
+8.5複雑なロジックと格闘する
+Rangeクラスの実装
+struct Range {
+  Int begin;
+  Int end;
+
+  // 例えば[0,5]は[0,8]と重なっている
+  Bool OverlapsWith(Range other);
+}
+// 始点または終点がある範囲の中にあるか確認する
+
+2つの範囲の重なりを確認する
+↓
+2つの範囲が重ならないか確認する
+
+1.一方の終点がある範囲の始点よりも前にある場合
+2.一方の範囲の始点がある範囲の終点よりも前にある場合
+3.残ったものは重なっている
+
+配列を逆順にイテレートしてみる
+データを後ろから挿入してみる
+など
+
+
+8.6巨大な文を分割する
+要約変数として関数の最上位に抽出する
+ var update_highlight = function (message_num ){
+    var thumbs_up = $(“#thumbs_up” + message_num);
+    var thumbs_down $(“thumbs_down” + message_num);
+    var thumbs_value $(“thumbs_value” + message_num);
+    var hi = “highlighted”;
+
+   If (vote_value == up) {
+    thumbs_up.addClass(hi);
+    thumbs_down.removeClass(hi);
+  } else if (vote_value == Down) {
+    thumbs_up.removeClass(hi);
+    thumbs_down.addClass(hi);
+  } else {
+    thumbs_up.removeClass(hi);
+  }
+}
+・タイプミスを減らすのに役立つ
+・横幅が縮まるのでコードが読みやすくなる
+・クラス名の変更が容易
+
+8.7式を簡潔にするもう一つの創造的な方法
+C++の場合マクロを定義する
+void AddStats(Const Stats& add_from, Stats* add_to) {
+  # define ADD_FIELD(field) add_to->set_##field(add_form.field() + add_to->field())
+
+  ADD_FIELD(total_memory);
+  ADD_FIELD(free_memory);
+  ADD_FIELD(swap_memory)
+} 
+
+8.8まとめ
+説明関数利点
+・巨大な式を分割できる
+・簡素な名前で式を説明する事でコードを文書化できる
+・コードの主要な概念を読み手が理解しやすくなる
+
+・ド・モルガンの法則を使ってロジックを操作する
+・if分の中身が2行以上にならないようにする
+　分割する
+　否定する
+　反対のことを考えてみる
+
+
