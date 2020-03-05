@@ -1,0 +1,97 @@
+// リーダブルコード2章
+
+send : 
+    deliver
+    dispath
+    announce
+    dustribute
+    route
+
+find :
+    search
+    extract
+    locate
+    recover
+
+start :
+    launch
+    create
+    begin
+    open
+
+make :
+    create
+    set up
+    build
+    generate
+    compose
+    add
+    new
+
+---
+汎用的な名前
+tmp
+it
+retvel
+
+---
+if (clubs[ci].members[mi] == user[ui])
+iはイテレータのi
+
+---
+TCP/IPポートをサーバーがリッスンできるか確認するメソッド
+CanListenOnPort()
+
+----
+リモートでも使用したりするのに
+--run_local
+↓
+--extra_logging
+--use_local_database
+
+----
+16進数の文字をもつ文字列
+strig hex_id; //例：af89ea99
+
+----
+start -> start_ms // ミリ秒を扱う
+elapsed -> elapsed_ms
+
+・変数名に単にを追加する
+deley -> delay_sec
+size -> size_mb
+limit -> max_kbps
+angle -> degrees_cw
+
+・変数名に重要な属性を追加する
+password -> plaintext_password
+comment -> unescaped_comment
+html -> html_utf8
+data -> data_urlenc
+間違えた時にバグになりそうなところに追加する。
+
+ーーー
+一般的な単語は省略する
+evaluation -> eval
+document -> doc
+string -> str
+
+---
+クラス名：　CamelCase　キャメル
+変数名：　lower_separated
+定数名：kMaxOpenFile
+クラスのメンバ変数： offset_ // 普通の変数と区別できる　んー？使うかなぁ
+
+Javaの場合
+var x = new DataPicker(); //コンストラクタ関数
+var y = pageHeight();　// 通常の関数
+
+jQueryの場合
+var $all_images = $("img"); // jQueryのオブジェクト
+var hight  = 250;
+
+
+
+
+
+

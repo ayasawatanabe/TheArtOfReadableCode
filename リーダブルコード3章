@@ -1,0 +1,96 @@
+//リーダブルコード3章
+
+filter()
+除外するのか：exclude()
+選択するのか：select()
+
+---
+clip() 
+最後から２文字削除するのか：remove()
+最大２文字まで切り詰めるのか：truncate
+
+Truncate(text, langth)
+Truncate(text, max_length)
+
+---
+限界値を含めるときはminとmaxを使う
+
+LIMIT　未満なのか、以下なのか
+MAX_ITEMS_IN_CART = 10
+if shopping_cart.num_items() > MAX_ITEMS_IN_CART:
+    error
+
+---
+範囲を指定するときはfirstとlastを使う
+print integer_range(start=2, stop=4);
+[2,3]なのか
+[2,3,4]なのか
+
+包含
+start：first
+stop：last
+lastを使うと4を含むことが表せる
+
+---
+包含・排他的範囲にはbeginとendを使う
+beginとendだと[2,3]になる
+
+---
+プール値の名前
+bool read_password = true; 危険
+パスワードをこれから読み取る：　need_password = true
+パスワードをすでに読み取っている：user_is_authenticated = true
+どちらとも取れる
+
+また否定形するのは避ける
+bool disabel_ssk = false; NG
+bool use_ssh = true; OK
+
+---
+get()で始まるメソッドはメンバの値を返すだけで軽いと思われる。誤解される
+getMean() : computeMean()
+
+list.size(): countSize(), countElements()
+
+---
+複数の名前を検討する
+1.template
+2.reuse
+3.copy
+4.inherit
+
+experiment_id: 101
+the_other_experiment_id_I_want_to_reuse:100　＜＜全ての試験に共通するパラメーター
+[以下、変更が必要な項目だけ書き換える]
+
+
+template
+これはテンプレートです。
+これはテンプレートを使っています。
+
+reuse
+reuse:100　とするとこの試験は100回までとうIdではなく制限に見える
+変えるならruees_id:100
+
+copy
+変えるならcopy_experiment
+
+inherit
+継承する
+ただしどこから何を継承しているのかを明確にする
+変えるなら
+inherit_form
+inherit_form_experiment_id
+
+---
+まとめ
+filter
+length
+limit
+等曖昧な単語は避ける
+
+限界値　max min
+包含的範囲　first last
+包含・排他的範囲　begin end
+bool値は　is や　has をつける　否定形は避ける
+get() や　size()などは軽量なメソッドのみ使う

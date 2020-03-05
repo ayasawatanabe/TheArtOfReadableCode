@@ -1,0 +1,39 @@
+//リーダブルコード　1章
+for(NOde* node = list->head; node != NULL; node = node->next)
+    print(node->data);
+
+----
+
+Node* node = list->head;
+if(Node == NULL) return;
+
+while(node->next != NULL){
+    print(node->data);
+    node->next;
+}
+if(node != NULL) print(node->data)
+
+-----
+
+return exponect >= 0 ? mantissa * (1 << exponent) : mantissa / (1 << -exponect);
+
+----
+
+if (exponect >0) {
+    return mantissa * (1 << exponect);
+} else {
+    return mantissa / (1 << -exponect);
+}
+
+----
+
+assert((!(bucket = FindBucket(key))) || ! bucket->IsOccupied());
+
+----
+
+bucket = FindBucket(ket);
+if (bucket != NULL) assert(!bucket->IsOccupied());
+
+occupied 占領された。ふさがった。
+-----
+
